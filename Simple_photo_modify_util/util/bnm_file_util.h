@@ -22,14 +22,10 @@ class bnm_file_util {
     char *name_of_input_file;
     char *name_of_output_file;
     char type;
-
-    gray_scale_pic pic_g;
-    color_pic pic_c;
+    picture* picture;
 
     bnm_file_util(char *inp, char *outp, int command) :
-            name_of_input_file(inp), name_of_output_file(outp), command(command), type('0') {};
-
-    picture* get_pointer();
+            name_of_input_file(inp), name_of_output_file(outp), command(command), type('0'), picture(nullptr) {};
 
     void check_file(FILE*);
     void read_picture(FILE*);
@@ -41,5 +37,6 @@ public:
     bnm_file_util operator=(bnm_file_util const &other) = delete;
 
     static bnm_file_util &instance(char *, char *, char);
+    ~bnm_file_util();
     void run();
 };

@@ -8,45 +8,69 @@ bnm_file_util &bnm_file_util::instance(char *inp, char *outp, char command) {
     return util;
 }
 
+bnm_file_util::~bnm_file_util() {
+    free(name_of_input_file);
+    free(name_of_output_file);
+    picture->~picture();
+}
+
 void bnm_file_util::run() {
-    FILE *f = fopen(name_of_input_file, "rb");
-    if (f == nullptr) {
-        throw std::runtime_error("file didn't find bnm_file_util::run()");
+    FILE *f;
+    if ((f = fopen(name_of_input_file, "rb")) == nullptr) {
+        throw std::runtime_error("Can't open file");
     }
 
-    check_file(f);
-    read_picture(f);
-    fclose(f);
+    try {
+        check_file(f);
+        read_picture(f);
+    } catch (std::runtime_error &err) {
+        fclose(f);
+        throw std::runtime_error(err.what());
+    }
+
+    if (fclose(f) == EOF) {
+        throw std::runtime_error("Input file can't be closed");
+    }
 
     act();
     write_result();
 }
 
 void bnm_file_util::check_file(FILE *f) {
-    auto *header = (char *) malloc(3);
+    char *header;
+    try {
+        header = new char[3];
+    } catch (std::bad_alloc &err) {
+        throw std::runtime_error("Not enough memory");
+    }
+
     if (fscanf(f, "%s", header) == EOF) {
-        free(header);
-        throw std::runtime_error("Bad picture file bnm_file_util::check_file");
+        delete[](header);
+        throw std::runtime_error("Bad picture file");
     }
 
     if (strcmp(header, "P6") != 0 && strcmp(header, "P5") != 0) {
-        free(header);
-        throw std::runtime_error("Unknown picture type bnm_file_util::check_file");
+        delete[](header);
+        throw std::runtime_error("Unknown picture type");
     }
 
-    type = *(header + 1);
-    free(header);
+    type = header[1];
+    delete[](header);
 
     if (feof(f) != 0) {
-        throw std::runtime_error("Bad picture file bnm_file_util::check_file");
+        throw std::runtime_error("Bad picture file");
     }
 }
 
 void bnm_file_util::read_picture(FILE *f) {
     int wide, height, grade;
     fscanf(f, "%i %i\n%i\n", &wide, &height, &grade);
-    if (feof(f) != 0 || wide <= 0 || height <= 0 || grade > 255) {
-        throw std::runtime_error("Bad picture file bnm_file_util::read_picture");
+    if (feof(f) != 0 || errno == EILSEQ) {
+        throw std::runtime_error("Bad picture file. Size isn't an integer");
+    }
+
+    if (wide <= 0 || height <= 0 || grade > 255) {
+        throw std::runtime_error("Bad picture file");
     }
 
     u_char *file_data = nullptr;
@@ -54,36 +78,53 @@ void bnm_file_util::read_picture(FILE *f) {
 
     switch (type) {
         case GRAY_SCALE:
-            file_data = (u_char *) malloc(picture_size * sizeof(u_char));
-            if (fread(file_data, sizeof(u_char), picture_size, f) != picture_size || feof(f) != 0) {
-                free(file_data);
-                throw std::runtime_error("Bad picture file bnm_file_util::read_picture");
+            try {
+                file_data = new u_char[picture_size];
+            } catch (std::bad_alloc &err) {
+                throw std::runtime_error("Not enough memory");
             }
 
-            pic_g = gray_scale_pic(wide, height, grade, file_data);
+            if (fread(file_data, sizeof(u_char), picture_size, f) != picture_size || feof(f) != 0) {
+                free(file_data);
+                throw std::runtime_error("Bad picture file");
+            }
+
+            try {
+                picture = new gray_scale_pic(wide, height, grade, file_data);
+            } catch (std::bad_alloc &err) {
+                delete[] (file_data);
+                throw std::runtime_error("Not enough memory");
+            }
             break;
 
         case COLOR:
             picture_size *= 3;
-            file_data = (u_char *) malloc(picture_size * sizeof(u_char));
-            if (fread(file_data, sizeof(u_char), picture_size, f) != picture_size || feof(f) != 0) {
-                free(file_data);
-                throw std::runtime_error("Bad picture file bnm_file_util::read_picture");
+            try {
+                file_data = new u_char[picture_size];
+            } catch (std::bad_alloc &err) {
+                throw std::runtime_error("Not enough memory");
             }
 
-            pic_c = color_pic(wide, height, grade, file_data);
+            if (fread(file_data, sizeof(u_char), picture_size, f) != picture_size || feof(f) != 0) {
+                delete[] (file_data);
+                throw std::runtime_error("Bad picture file");
+            }
+
+            try {
+                picture = new color_pic(wide, height, grade, file_data);
+            } catch (std::bad_alloc &err) {
+                delete[] (file_data);
+                throw std::runtime_error("Not enough memory");
+            }
             break;
 
         default:
-            throw std::runtime_error("Unknown picture type bnm_file_util::read_picture");
+            throw std::runtime_error("Unknown picture type");
     }
-
-    free(file_data);
+    delete[] (file_data);
 }
 
 void bnm_file_util::act() {
-    auto picture = get_pointer();
-
     switch (command) {
         case INVERSION:
             picture->invert();
@@ -101,7 +142,6 @@ void bnm_file_util::act() {
             picture->rotation_anti_cw();
             break;
         case COPY:
-            write_result();
             break;
         default:
             throw std::runtime_error(
@@ -110,25 +150,23 @@ void bnm_file_util::act() {
 }
 
 void bnm_file_util::write_result() {
-    FILE *f = fopen(name_of_output_file, "wb");
-    if (f == nullptr) {
-        throw std::runtime_error("result file didn't open bnm_file_util::write_result");
+    FILE *f;
+    if ((f = fopen(name_of_output_file, "wb")) == nullptr) {
+        throw std::runtime_error("result file didn't open");
     }
-    fprintf(f, "%c%c\n", 'P', type);
 
-    auto picture = get_pointer();
-    picture->write(f);
+    if (fprintf(f, "%c%c\n", 'P', type) < 0) {
+        throw std::runtime_error("result file broke");
+    }
 
-    fclose(f);
-}
+    try {
+        picture->write(f);
+    } catch (std::runtime_error &err) {
+        fclose(f);
+        throw std::runtime_error(err.what());
+    }
 
-picture *bnm_file_util::get_pointer() {
-    switch (type) {
-        case GRAY_SCALE:
-            return  &pic_g;
-        case COLOR:
-            return  &pic_c;
-        default:
-            throw std::runtime_error("Unknown picture type bnm_file_util::read_picture");
+    if (fclose(f) == EOF) {
+        throw std::runtime_error("Output file can't be closed");
     }
 }
