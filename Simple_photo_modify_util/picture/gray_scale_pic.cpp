@@ -2,7 +2,7 @@
 
 #include "gray_scale_pic.h"
 
-int gray_scale_pic::g_s_pixel::write(u_char *f, int pos) {
+size_t gray_scale_pic::g_s_pixel::write(u_char *f, size_t pos) {
     f[pos++] = value;
     return pos;
 }
@@ -11,12 +11,11 @@ void gray_scale_pic::g_s_pixel::invert(u_char grade) {
     value = grade - value;
 }
 
-gray_scale_pic::gray_scale_pic(int wide, int height, int grade, u_char const *new_data) :
+gray_scale_pic::gray_scale_pic(size_t wide, size_t height, size_t grade, u_char const *new_data) :
         picture(wide, height, grade, new_data) {
-    int size = height * wide;
-    for (int i = 0; i < size; ++i) {
+    for (size_t i = 0; i < height * wide; ++i) {
         if (new_data[i] > grade) {
-            throw std::runtime_error("Invalid picture g_s_pixel::g_s_pixel");
+            throw std::runtime_error("Invalid picture");
         }
         try {
             data[i] = new g_s_pixel(new_data[i]);
@@ -26,10 +25,10 @@ gray_scale_pic::gray_scale_pic(int wide, int height, int grade, u_char const *ne
     }
 }
 
-int gray_scale_pic::get_char_count() {
+size_t gray_scale_pic::get_char_count() {
     return height * wide;
 }
 
-picture *gray_scale_pic::get_canvas(u_char *buffer, int wide, int height) {
+picture *gray_scale_pic::get_canvas(size_t wide, size_t height, u_char *buffer) {
     return new gray_scale_pic(wide, height, grade, buffer);
 }

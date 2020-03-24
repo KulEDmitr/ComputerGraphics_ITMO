@@ -2,7 +2,7 @@
 
 #include "color_pic.h"
 
-int color_pic::rgb_pixel::write(u_char *f, int pos) {
+size_t color_pic::rgb_pixel::write(u_char *f, size_t pos) {
     f[pos++] = r;
     f[pos++] = g;
     f[pos++] = b;
@@ -15,10 +15,9 @@ void color_pic::rgb_pixel::invert(u_char grade) {
     b = grade - b;
 }
 
-color_pic::color_pic(int wide, int height, int grade, u_char const *new_data)
+color_pic::color_pic(size_t wide, size_t height, size_t grade, u_char const *new_data)
         : picture(wide, height, grade, new_data) {
-    int size = height * wide;
-    for (int i = 0, j = 0; i < size; ++i, j += 3) {
+    for (size_t i = 0, j = 0; i < height * wide; ++i, j += 3) {
         if (new_data[j] > grade || new_data[j + 1] > grade || new_data[j + 2] > grade) {
             throw std::runtime_error("Invalid picture");
         }
@@ -30,10 +29,10 @@ color_pic::color_pic(int wide, int height, int grade, u_char const *new_data)
     }
 }
 
-picture *color_pic::get_canvas(u_char *buffer, int wide, int height) {
+picture *color_pic::get_canvas(size_t wide, size_t height, u_char *buffer) {
     return new color_pic(wide, height, grade, buffer);
 }
 
-int color_pic::get_char_count() {
+size_t color_pic::get_char_count() {
     return height * wide * 3;
 }

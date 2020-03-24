@@ -11,7 +11,9 @@ bnm_file_util &bnm_file_util::instance(char *inp, char *outp, char command) {
 bnm_file_util::~bnm_file_util() {
     free(name_of_input_file);
     free(name_of_output_file);
-    picture->~picture();
+    if (picture != nullptr) {
+        picture->~picture();
+    }
 }
 
 void bnm_file_util::run() {
@@ -39,7 +41,7 @@ void bnm_file_util::run() {
 void bnm_file_util::check_file(FILE *f) {
     char *header;
     try {
-        header = new char[3];
+        header = new char[2];
     } catch (std::bad_alloc &err) {
         throw std::runtime_error("Not enough memory");
     }
@@ -56,10 +58,6 @@ void bnm_file_util::check_file(FILE *f) {
 
     type = header[1];
     delete[](header);
-
-    if (feof(f) != 0) {
-        throw std::runtime_error("Bad picture file");
-    }
 }
 
 void bnm_file_util::read_picture(FILE *f) {
@@ -145,7 +143,7 @@ void bnm_file_util::act() {
             break;
         default:
             throw std::runtime_error(
-                    "Something wrong with <action>. It must be an integer in range [0, 4]\nbnm_file_util::act()");
+                    "Something wrong with <action>. It must be an integer in range [0, 4]");
     }
 }
 
