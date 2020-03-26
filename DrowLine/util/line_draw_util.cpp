@@ -74,6 +74,10 @@ void line_draw_util::read_canvas(FILE *f) {
         throw std::runtime_error("Bad picture file");
     }
 
+    if (wide < start.x || wide < end.x || height < start.y || height < end.y) {
+        throw std::runtime_error("Bad coordinates for line. Picture isn't enough size");
+    }
+
     u_char *file_data = nullptr;
     int picture_size = wide * height;
 
@@ -95,7 +99,37 @@ void line_draw_util::read_canvas(FILE *f) {
 }
 
 void line_draw_util::act() {
-    //todo
+    BresenhamLine();
+}
+
+void line_draw_util::correctCoordinates(bool steep) {
+    if (steep) {
+        std::swap(start.x, start.y);
+        std::swap(end.x, end.y);
+    }
+    if (start.x > end.x) {
+        std::swap(start, end);
+    }
+}
+
+void line_draw_util::BresenhamLine() {
+    bool steep = std::abs(end.x - start.x) < std::abs(end.y - start.y);
+    correctCoordinates(steep);
+
+    int deltaX = end.x - start.x;
+    int deltaY = std::abs(start.y - end.y);
+
+    int error = 0;
+    int yDirection = (start.y < end.y) ? 1 : -1;
+    int y = start.y;
+    for (int x = start.x; x <= end.x; ++x) {
+        canvas->set_pixel(steep ? y : x, steep ? x : y, bright);
+        error += deltaY;
+        if (2 * error >= deltaX) {
+            y += yDirection;
+            error -= deltaX;
+        }
+    }
 }
 
 void line_draw_util::write_result() {

@@ -20,13 +20,16 @@ class line_draw_util {
     picture* canvas;
 
     line_draw_util(char *inp, char *outp, size_t bright, double thickness = 1,
-                   double x_1 = 0, double y_1 = 0, double x_2 = 0, double y_2 = 0, double gamma = 2.2)
+                   double x_1 = 0, double y_1 = 0, double x_2 = 0, double y_2 = 0, double gamma = 2.0)
             : name_of_input_file(inp), name_of_output_file(outp), bright(bright),
             thickness(thickness), start(x_1, y_1), end(x_2, y_2), gamma(gamma), canvas(nullptr) {};
 
     static void check_file(FILE*);
     void read_canvas(FILE*);
     void act();
+
+    void BresenhamLine();
+    void correctCoordinates(bool);
     void write_result();
 
 public:
