@@ -44,3 +44,7 @@ void picture::write(FILE *name) {
         throw std::runtime_error("Result file isn't write correctly");
     }
 }
+
+void picture::set_grade(size_t new_grade) {
+    grade = new_grade;
+}

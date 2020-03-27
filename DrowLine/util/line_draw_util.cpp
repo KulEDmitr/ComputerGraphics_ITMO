@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string.h>
+#include <cmath>
 
 line_draw_util &line_draw_util::instance(char *inp, char *outp, size_t bright, double thickness, double x_1, double y_1,
                                          double x_2, double y_2, double gamma) {
@@ -12,8 +13,7 @@ line_draw_util &line_draw_util::instance(char *inp, char *outp, size_t bright, d
 line_draw_util::~line_draw_util() {
     free(name_of_input_file);
     free(name_of_output_file);
-    start.~point();
-    end.~point();
+    new_element.~line();
     if (canvas != nullptr) {
         canvas->~picture();
     }
@@ -63,6 +63,11 @@ void line_draw_util::check_file(FILE *f) {
     delete[](header);
 }
 
+void line_draw_util::checkLine(size_t wide, size_t height) const {
+    new_element.get_start().checkPoint(wide, height);
+    new_element.get_end().checkPoint(wide, height);
+}
+
 void line_draw_util::read_canvas(FILE *f) {
     int wide, height, grade;
     fscanf(f, "%i %i\n%i\n", &wide, &height, &grade);
@@ -74,9 +79,7 @@ void line_draw_util::read_canvas(FILE *f) {
         throw std::runtime_error("Bad picture file");
     }
 
-    if (wide < start.x || wide < end.x || height < start.y || height < end.y) {
-        throw std::runtime_error("Bad coordinates for line. Picture isn't enough size");
-    }
+    checkLine(wide, height);
 
     u_char *file_data = nullptr;
     int picture_size = wide * height;
@@ -90,6 +93,8 @@ void line_draw_util::read_canvas(FILE *f) {
         }
 
         canvas = new picture(wide, height, grade, file_data);
+        grade = new_element.checkUltraBrightness(grade);
+        canvas->set_grade(grade);
 
     } catch (std::bad_alloc &err) {
         delete[] (file_data);
@@ -99,31 +104,31 @@ void line_draw_util::read_canvas(FILE *f) {
 }
 
 void line_draw_util::act() {
-    BresenhamLine();
+    WuLine();
 }
 
 void line_draw_util::correctCoordinates(bool steep) {
     if (steep) {
-        std::swap(start.x, start.y);
-        std::swap(end.x, end.y);
+        new_element.changeDirection();
     }
-    if (start.x > end.x) {
-        std::swap(start, end);
+    if (new_element.get_start() > new_element.get_end()) {
+        new_element.changeDirection();
     }
 }
 
 void line_draw_util::BresenhamLine() {
-    bool steep = std::abs(end.x - start.x) < std::abs(end.y - start.y);
-    correctCoordinates(steep);
+    bool swapped = std::abs(new_element.get_end().x - new_element.get_start().x) <
+                   std::abs(new_element.get_end().y - new_element.get_start().y);
+    correctCoordinates(swapped);
 
-    int deltaX = end.x - start.x;
-    int deltaY = std::abs(start.y - end.y);
+    int deltaX = new_element.get_end().x - new_element.get_start().x;
+    int deltaY = std::abs(new_element.get_end().y - new_element.get_start().y);
 
     int error = 0;
-    int yDirection = (start.y < end.y) ? 1 : -1;
-    int y = start.y;
-    for (int x = start.x; x <= end.x; ++x) {
-        canvas->set_pixel(steep ? y : x, steep ? x : y, bright);
+    int yDirection = (new_element.get_start().y < new_element.get_end().y) ? 1 : -1;
+    int y = new_element.get_start().y;
+    for (int x = new_element.get_start().x; x <= new_element.get_end().x; ++x) {
+        canvas->set_pixel(swapped ? y : x, swapped ? x : y);
         error += deltaY;
         if (2 * error >= deltaX) {
             y += yDirection;
@@ -148,4 +153,30 @@ void line_draw_util::write_result() {
     if (fclose(f) == EOF) {
         throw std::runtime_error("Output file can't be closed");
     }
+}
+
+void line_draw_util::WuLine() {
+    double sX = new_element.get_start().x, sY = new_element.get_start().y,
+            eX = new_element.get_end().x, eY = new_element.get_end().y;
+
+    bool swapped = std::abs(new_element.get_end().x - new_element.get_start().x) <
+                   std::abs(new_element.get_end().y - new_element.get_start().y);
+    correctCoordinates(swapped);
+
+    double deltaX = eX - sX;
+    double deltaY = eY - sY;
+    double grad = deltaY / deltaX;
+
+    double y = sY - grad * (sX - (int) sX);
+    for (size_t x = (int) sX; x <= (int) eX; ++x) {
+        double brightness = y - (int) y;
+        colorOppositePoint(swapped, x, y, 1 - brightness);
+        colorOppositePoint(swapped, x, y + 1, brightness);
+        y += grad;
+    }
+}
+
+void line_draw_util::colorOppositePoint(bool swapped, int x, int y, double br) {
+    int brightness = int(255.0 * br);
+    canvas->set_pixel(swapped ? y : x, swapped ? x : y, brightness);
 }

@@ -15,5 +15,6 @@ public:
     ~picture();
 
     void write(FILE *);
-    void set_pixel(size_t, size_t, size_t);
+    void set_pixel(size_t, size_t, size_t = 0);
+    void set_grade(size_t);
 };
