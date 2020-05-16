@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <cmath>
 #include "picture.h"
 
 picture::picture(size_t wide, size_t height, size_t grade, u_char const *data)
@@ -30,8 +31,25 @@ size_t picture::get_index(size_t x, size_t y) {
     return y * wide + x;
 }
 
-void picture::set_pixel(size_t x, size_t y, size_t pix) {
-    data[get_index(x, y)] = pix;
+void picture::set_pixel(size_t x, size_t y, size_t brightness, double intensity, double gamma) {
+    if (x >= 0 && x < wide && y >= 0 && y < height) {
+        size_t index = get_index(x, y);
+        double dat = pow(data[index] / 255.0, gamma);
+        data[index] = (u_char) (255.0 * pow(dat * (1 - intensity) + (intensity * brightness) / 255.0, 1 / gamma));
+    }
+}
+
+
+void picture::set_sRGB_pixel(size_t x, size_t y, size_t brightness, double intensity) {
+    if (x >= 0 && x < wide && y >= 0 && y < height) {
+        size_t index = get_index(x, y);
+        double dat = data[index] / 255.0;
+        dat = (dat <= 0.04045) ? dat / 12.92 : pow((dat + 0.055) / 1.055, 2.4);
+        double res = dat * (1 - intensity) + (intensity * brightness) / 255.0;
+        res = (res <= 0.0031308) ? 12.92 * res : 1.055 * pow(res, 1 / 2.4) - 0.055;
+
+        data[index] = (u_char) (255 * res);
+    }
 }
 
 void picture::write(FILE *name) {
@@ -45,6 +63,3 @@ void picture::write(FILE *name) {
     }
 }
 
-void picture::set_grade(size_t new_grade) {
-    grade = new_grade;
-}

@@ -37,8 +37,40 @@ void line_draw_util::run() {
         throw std::runtime_error("Input file can't be closed");
     }
 
-    act();
+    WuLine();
     write_result();
+}
+
+void line_draw_util::read_canvas(FILE *f) {
+    int wide, height, grade;
+    int count = fscanf(f, "%i %i\n%i\n", &wide, &height, &grade);
+    if (feof(f) != 0 || ferror(f) || errno == EILSEQ || count < 3) {
+        throw std::runtime_error("Bad picture file. Size isn't an integer");
+    }
+
+    if (wide <= 0 || height <= 0 || grade > 255) {
+        throw std::runtime_error("Bad picture file");
+    }
+    checkLine(wide, height);
+
+    u_char *file_data = nullptr;
+    int picture_size = wide * height;
+
+    try {
+        file_data = new u_char[picture_size];
+
+        if (fread(file_data, sizeof(u_char), picture_size, f) != picture_size || feof(f) != 0) {
+            free(file_data);
+            throw std::runtime_error("Bad picture file");
+        }
+
+        canvas = new picture(wide, height, grade, file_data);
+
+    } catch (std::bad_alloc &err) {
+        delete[] (file_data);
+        throw std::runtime_error("Not enough memory");
+    }
+    delete[] (file_data);
 }
 
 void line_draw_util::check_file(FILE *f) {
@@ -63,79 +95,88 @@ void line_draw_util::check_file(FILE *f) {
     delete[](header);
 }
 
-void line_draw_util::checkLine(size_t wide, size_t height) const {
-    new_element.get_start().checkPoint(wide, height);
-    new_element.get_end().checkPoint(wide, height);
-}
+void line_draw_util::checkLine(size_t wide, size_t height) {
+    new_element.start.checkPoint(wide, height);
+    new_element.end.checkPoint(wide, height);
 
-void line_draw_util::read_canvas(FILE *f) {
-    int wide, height, grade;
-    fscanf(f, "%i %i\n%i\n", &wide, &height, &grade);
-    if (feof(f) != 0 || errno == EILSEQ) {
-        throw std::runtime_error("Bad picture file. Size isn't an integer");
+    if (new_element.start > new_element.end) {
+        new_element.changeDirection();
     }
-
-    if (wide <= 0 || height <= 0 || grade > 255) {
-        throw std::runtime_error("Bad picture file");
-    }
-
-    checkLine(wide, height);
-
-    u_char *file_data = nullptr;
-    int picture_size = wide * height;
-
-    try {
-        file_data = new u_char[picture_size];
-
-        if (fread(file_data, sizeof(u_char), picture_size, f) != picture_size || feof(f) != 0) {
-            free(file_data);
-            throw std::runtime_error("Bad picture file");
-        }
-
-        canvas = new picture(wide, height, grade, file_data);
-        grade = new_element.checkUltraBrightness(grade);
-        canvas->set_grade(grade);
-
-    } catch (std::bad_alloc &err) {
-        delete[] (file_data);
-        throw std::runtime_error("Not enough memory");
-    }
-    delete[] (file_data);
-}
-
-void line_draw_util::act() {
-    WuLine();
 }
 
 void line_draw_util::correctCoordinates(bool steep) {
     if (steep) {
-        new_element.changeDirection();
-    }
-    if (new_element.get_start() > new_element.get_end()) {
-        new_element.changeDirection();
+        new_element.start.changeAxis();
+        new_element.end.changeAxis();
     }
 }
 
-void line_draw_util::BresenhamLine() {
-    bool swapped = std::abs(new_element.get_end().x - new_element.get_start().x) <
-                   std::abs(new_element.get_end().y - new_element.get_start().y);
+void line_draw_util::colorPoint(bool swapped, int x, int y, double intensity) {
+    if (!srgb) {
+        canvas->set_pixel(swapped ? y : x, swapped ? x : y, new_element.brightness, intensity, gamma);
+    } else {
+        canvas->set_sRGB_pixel(swapped ? y : x, swapped ? x : y, new_element.brightness, intensity);
+    }
+}
+
+void line_draw_util::doGradient(int sX, int eX, bool swapped, double lineY, double grad) {
+    for (auto plotX = sX; plotX <= eX; ++plotX) {
+        colorPoint(swapped, plotX, (int) lineY, 1 - (lineY - (int) lineY));
+        colorPoint(swapped, plotX, (int) lineY + 1, lineY - (int) lineY);
+        lineY += grad;
+    }
+}
+
+void line_draw_util::WuLine() {
+    bool swapped =
+            std::abs(new_element.start.x - new_element.end.x) < std::abs(new_element.start.y - new_element.end.y);
     correctCoordinates(swapped);
 
-    int deltaX = new_element.get_end().x - new_element.get_start().x;
-    int deltaY = std::abs(new_element.get_end().y - new_element.get_start().y);
+    if (new_element.start > new_element.end) {
+        new_element.changeDirection();
+    }
 
-    int error = 0;
-    int yDirection = (new_element.get_start().y < new_element.get_end().y) ? 1 : -1;
-    int y = new_element.get_start().y;
-    for (int x = new_element.get_start().x; x <= new_element.get_end().x; ++x) {
-        canvas->set_pixel(swapped ? y : x, swapped ? x : y);
-        error += deltaY;
-        if (2 * error >= deltaX) {
-            y += yDirection;
-            error -= deltaX;
+    double sX = new_element.start.x, sY = new_element.start.y,
+            eX = new_element.end.x, eY = new_element.end.y,
+            hThickness = new_element.thickness / 2;
+
+    double deltaX = eX - sX;
+    double deltaY = eY - sY;
+    double grad = deltaY / deltaX;
+
+    if (grad == 0) {
+        for (auto plotX = (int) round(sX); plotX <= (int) round(eX); ++plotX) {
+            for (auto plotY = (int) round(sY - hThickness + 1);
+                 plotY < (int) round(sY + hThickness - 1); ++plotY) {
+                colorPoint(swapped, plotX, plotY, 1);
+            }
         }
+        return;
+    }
+
+    double interY = sY + grad;
+
+    doGradient((int) round(sX), (int) round(eX), swapped, interY - hThickness, grad);
+    if (new_element.thickness == 1) return;
+
+    doGradient((int) round(sX), (int) round(eX), swapped, interY + hThickness - 1, grad);
+    if (new_element.thickness == 2) return;
+
+    for (auto plotX = (int) round(sX); plotX <= (int) round(eX); ++plotX) {
+        colorPoint(swapped, plotX, (int) (interY + hThickness - 1), 1.0);
+        colorPoint(swapped, plotX, (int) (interY - hThickness + 1), 1.0);
+
+        if (new_element.thickness > 3) {
+            for (auto plotY = (int) round(interY - hThickness + 1);
+                 plotY < (int) round(interY + hThickness - 1); ++plotY) {
+                colorPoint(swapped, plotX, plotY, 1);
+            }
+        }
+
+        interY += grad;
     }
 }
+
 
 void line_draw_util::write_result() {
     FILE *f;
@@ -155,28 +196,3 @@ void line_draw_util::write_result() {
     }
 }
 
-void line_draw_util::WuLine() {
-    double sX = new_element.get_start().x, sY = new_element.get_start().y,
-            eX = new_element.get_end().x, eY = new_element.get_end().y;
-
-    bool swapped = std::abs(new_element.get_end().x - new_element.get_start().x) <
-                   std::abs(new_element.get_end().y - new_element.get_start().y);
-    correctCoordinates(swapped);
-
-    double deltaX = eX - sX;
-    double deltaY = eY - sY;
-    double grad = deltaY / deltaX;
-
-    double y = sY - grad * (sX - (int) sX);
-    for (size_t x = (int) sX; x <= (int) eX; ++x) {
-        double brightness = y - (int) y;
-        colorOppositePoint(swapped, x, y, 1 - brightness);
-        colorOppositePoint(swapped, x, y + 1, brightness);
-        y += grad;
-    }
-}
-
-void line_draw_util::colorOppositePoint(bool swapped, int x, int y, double br) {
-    int brightness = int(255.0 * br);
-    canvas->set_pixel(swapped ? y : x, swapped ? x : y, brightness);
-}
