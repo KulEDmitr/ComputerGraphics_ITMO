@@ -43,12 +43,14 @@ void picture::set_pixel(size_t x, size_t y, size_t brightness, double intensity,
 void picture::set_sRGB_pixel(size_t x, size_t y, size_t brightness, double intensity) {
     if (x >= 0 && x < wide && y >= 0 && y < height) {
         size_t index = get_index(x, y);
+
         double dat = data[index] / 255.0;
         dat = (dat <= 0.04045) ? dat / 12.92 : pow((dat + 0.055) / 1.055, 2.4);
-        double res = dat * (1 - intensity) + (intensity * brightness) / 255.0;
-        res = (res <= 0.0031308) ? 12.92 * res : 1.055 * pow(res, 1 / 2.4) - 0.055;
+        dat *= (1 - intensity);
+        dat += (intensity * brightness / 255.0);
+        dat = (dat <= 0.0031308) ? 12.92 * dat : 1.055 * pow(dat, 1 / 2.4) - 0.055;
 
-        data[index] = (u_char) (255 * res);
+        data[index] = (u_char) (255 * dat);
     }
 }
 
