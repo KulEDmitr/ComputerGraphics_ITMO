@@ -5,7 +5,7 @@
 picture::picture(size_t wide, size_t height, size_t grade, u_char const *data)
         : width(wide), height(height), grade(grade) {
     if (grade > 255) {
-        throw std::runtime_error("Invalid picture picture::picture");
+        throw std::runtime_error("Invalid picture");
     }
     try {
         size_t size = wide * height;
@@ -34,21 +34,6 @@ size_t picture::get_index(size_t x, size_t y) const {
 void picture::set_pixel(size_t x, size_t y, u_char value) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
         data[get_index(x, y)] = value;
-    }
-}
-
-
-void picture::set_sRGB_pixel(size_t x, size_t y, size_t brightness, double intensity) {
-    if (x >= 0 && x < width && y >= 0 && y < height) {
-        size_t index = get_index(x, y);
-
-        double dat = data[index] / 255.0;
-        dat = (dat <= 0.04045) ? dat / 12.92 : pow((dat + 0.055) / 1.055, 2.4);
-        dat *= (1 - intensity);
-        dat += (intensity * brightness / 255.0);
-        dat = (dat <= 0.0031308) ? 12.92 * dat : 1.055 * pow(dat, 1 / 2.4) - 0.055;
-
-        data[index] = (u_char) (255 * dat);
     }
 }
 

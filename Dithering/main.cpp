@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
         }
 
         dithering_util::instance(argv[1], argv[2], atoi(argv[3]), atoi(argv[4]), atoi(argv[5]),
-                atof(argv[6])).run();
+                                 atof(argv[6])).run();
     } catch (std::runtime_error &err) {
         std::cerr << err.what() << std::endl;
         return 1;

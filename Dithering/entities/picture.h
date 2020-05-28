@@ -22,7 +22,6 @@ public:
     void write(FILE *);
 
     void set_pixel(size_t, size_t, u_char);
-    void set_sRGB_pixel(size_t, size_t, size_t, double);
 
     friend class dithering_util;
 };

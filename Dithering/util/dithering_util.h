@@ -69,7 +69,7 @@ class dithering_util {
 
     dithering_util(char *inp, char *outp, size_t grad, size_t dithering, size_t bits, double gamma)
             : name_of_input_file(inp), name_of_output_file(outp), grad(grad == 1), dithering(dithering),
-            bits(bits), gamma(gamma), canvas(nullptr){};
+              bits(bits), gamma(gamma), canvas(nullptr){};
 
     static void check_file(FILE*);
     void read_canvas(FILE*);
@@ -90,8 +90,8 @@ class dithering_util {
     void AtkinsonDithCorrection();
     void halftone4x4DithCorrection();
 
-    double simplePixelMagic(double, size_t, size_t);
-    double hardPixelMagic(std::vector<int>& , size_t, size_t);
+    double simplePixelMagic(double, double, size_t, size_t);
+    double hardPixelMagic(double, std::vector<double >& , size_t, size_t);
 
     void write_result();
 
