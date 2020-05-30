@@ -1,5 +1,5 @@
 #include <iostream>
-#include "util/convertion_util.h"
+#include "util/convertUtil.h"
 
 int main(int argc, char **argv) {
     try {
@@ -49,12 +49,11 @@ int main(int argc, char **argv) {
             throw std::runtime_error("Wrong arguments");
         }
 
-        convertion_util::instance(i_count, file_in_name, o_count, file_out_name, from_color_space,
+        convertUtil::instance(i_count, file_in_name, o_count, file_out_name, from_color_space,
                                   to_color_space).run();
 
     } catch (std::runtime_error &err) {
         std::cerr << err.what() << std::endl;
         return 1;
     }
-
 }

@@ -6,7 +6,7 @@ colorPicture::colorPicture(size_t width, size_t height, size_t grade, u_char con
                                                                                                 height(height),
                                                                                                 grade(grade) {
     if (grade > 255) {
-        throw std::runtime_error("Invalid picture picture::picture");
+        throw std::runtime_error("Invalid picture");
     }
     try {
         data = new rgb_pixel *[height * width];
@@ -29,7 +29,7 @@ colorPicture::colorPicture(size_t width, size_t height, size_t grade, u_char con
 colorPicture::colorPicture(size_t width, size_t height, size_t grade, u_char const *fileData1, u_char const *fileData2,
                            u_char const *fileData3) : width(width), height(height), grade(grade) {
     if (grade > 255) {
-        throw std::runtime_error("Invalid picture picture::picture");
+        throw std::runtime_error("Invalid picture");
     }
     try {
         data = new rgb_pixel *[height * width];
@@ -59,7 +59,7 @@ size_t colorPicture::getSize() const {
 }
 
 void colorPicture::write(FILE *name) {
-    if (fprintf(name, "%i %i\n%i\n", width, height, grade) < 0) {
+    if (fprintf(name, "%c%c\n%i %i\n%i\n", 'P', '6', width, height, grade) < 0) {
         throw std::runtime_error("Result file isn't write");
     }
 
@@ -80,9 +80,9 @@ void colorPicture::write(FILE *name) {
 }
 
 void colorPicture::write(FILE *f1, FILE *f2, FILE *f3) {
-    if (fprintf(f1, "%i %i\n%i\n", width, height, grade) < 0 ||
-        fprintf(f2, "%i %i\n%i\n", width, height, grade) < 0 ||
-        fprintf(f3, "%i %i\n%i\n", width, height, grade) < 0) {
+    if (fprintf(f1, "%c%c\n%i %i\n%i\n", 'P', '5', width, height, grade) < 0 ||
+        fprintf(f2, "%c%c\n%i %i\n%i\n", 'P', '5', width, height, grade) < 0 ||
+        fprintf(f3, "%c%c\n%i %i\n%i\n", 'P', '5', width, height, grade) < 0) {
         throw std::runtime_error("Result file isn't write");
     }
 
@@ -132,4 +132,3 @@ size_t rgb_pixel::write(u_char *f1, u_char *f2, u_char *f3, size_t pos) const {
     f3[pos] = C;
     return ++pos;
 }
-
