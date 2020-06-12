@@ -19,7 +19,7 @@ void picture::changeBrightness(double offset, double factor, bool isRGB) {
 }
 
 std::pair<int, int> picture::findBorders(bool isRGB, bool hard) {
-    int pixels[256] = {}, brightest = 0, darkest = 0;
+    int pixels[256] = {}, brightest = 255, darkest = 0;
 
     for (auto i = 0; i < wide * height; ++i) {
         data[i]->add(pixels, isRGB);
@@ -33,11 +33,15 @@ std::pair<int, int> picture::findBorders(bool isRGB, bool hard) {
 
         while (success < ignored) {
             if (success % 2 == 0) {
-                while (pixels[lightPos--] == 0)
-                    --pixels[lightPos];
+                while (pixels[lightPos] == 0){
+                    --lightPos;
+                }
+                --pixels[lightPos];
             } else {
-                while (pixels[darkPos++] == 0)
-                    --pixels[darkPos];
+                while (pixels[darkPos] == 0){
+                    ++darkPos;
+                }
+                --pixels[darkPos];
             }
             ++success;
         }

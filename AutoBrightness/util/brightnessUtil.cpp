@@ -5,7 +5,13 @@
 
 brightnessUtil::brightnessUtil(char *inp, char *outp, int command, int offset, double factor) :
         name_of_input_file(inp), name_of_output_file(outp), command(command), offset(offset),
-        factor(factor), type('0'), picture(nullptr) { isRGB = (command == 0 || command == 2 || command == 4);}
+        factor(factor), type('0'), picture(nullptr) {
+
+    if (command > 1 && (factor < 1.0 / 255.0 || factor > 255.0 || offset < -255 || offset > 255)) {
+        throw std::runtime_error("Invalid parameters for brightness correction");
+    }
+    isRGB = (command == 0 || command == 2 || command == 4);
+}
 
 brightnessUtil &brightnessUtil::instance(char *inp, char *outp, int command, int offset, double factor) {
     static brightnessUtil util = brightnessUtil(inp, outp, command, offset, factor);
@@ -57,6 +63,12 @@ void brightnessUtil::checkFile(FILE *f) {
     }
 
     type = header[1];
+
+    if (type == GRAY_SCALE && (command == 1 || command == 3 || command == 5)) {
+        delete[](header);
+        throw std::runtime_error("Wrong picture format for input conversation");
+    }
+
     delete[](header);
 }
 
@@ -131,6 +143,7 @@ void brightnessUtil::act() {
         case YCbCr_AUTO:
             offset = boarders.second;
             factor = 255.0 / ((double)boarders.first - boarders.second);
+            std::cout << offset << " " << factor << std::endl;
         default:
             break;
     }

@@ -9,8 +9,8 @@ size_t grayScalePicture::gsPixel::write(u_char *f, size_t pos) {
 }
 
 void grayScalePicture::gsPixel::changeBrightness(double offset, double factor, bool isRGB) {
-    value = (value - offset) * factor;
-    value = fmin(fmax(0.0, value), 255.0);
+    double tmp = ((double) value - offset) * factor;
+    value = (u_char) fmin(fmax(0.0, tmp), 255.0);
 }
 
 void grayScalePicture::gsPixel::add(int *brights, bool isRGB) {

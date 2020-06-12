@@ -11,15 +11,15 @@ size_t colorPicture::rgbPixel::write(u_char *f, size_t pos) {
 }
 
 void colorPicture::rgbPixel::changeBrightness(double offset, double factor, bool isRGB) {
-    r = (r - offset) * factor;
-    r = fmin(fmax(0.0, r), 255.0);
+    double tmp = ((double) r - offset) * factor;
+    r = (u_char) fmin(fmax(0.0, tmp), 255.0);
 
     if (isRGB) {
-        g = (g - offset) * factor;
-        g = fmin(fmax(0.0, g), 255.0);
+        tmp = ((double) g - offset) * factor;
+        g = (u_char) fmin(fmax(0.0, tmp), 255.0);
 
-        b = (b - offset) * factor;
-        b = fmin(fmax(0.0, b), 255.0);
+        tmp = ((double) b - offset) * factor;
+        b = (u_char) fmin(fmax(0.0, tmp), 255.0);
     }
 }
 
