@@ -32,6 +32,7 @@ class brightnessUtil {
     void checkFile(FILE*);
     void readPicture(FILE*);
     void act();
+
     void writeResult();
 
 public:

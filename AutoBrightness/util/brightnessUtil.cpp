@@ -6,8 +6,7 @@
 brightnessUtil::brightnessUtil(char *inp, char *outp, int command, int offset, double factor) :
         name_of_input_file(inp), name_of_output_file(outp), command(command), offset(offset),
         factor(factor), type('0'), picture(nullptr) {
-
-    if (command > 1 && (factor < 1.0 / 255.0 || factor > 255.0 || offset < -255 || offset > 255)) {
+    if (command < 2 && (factor < 1.0 / 255.0 || factor > 255.0 || offset < -255 || offset > 255)) {
         throw std::runtime_error("Invalid parameters for brightness correction");
     }
     isRGB = (command == 0 || command == 2 || command == 4);
@@ -119,14 +118,20 @@ void brightnessUtil::readPicture(FILE *f) {
 void brightnessUtil::act() {
     std::pair<int, int> boarders;
 
+    if (!isRGB) {
+        picture->RGBtoYCbCr_601();
+    }
+
     switch (command) {
         case RGB_SET:
         case YCbCr_SET:
             break;
-        case RGB_AUTO_LITE:
+
         case YCbCr_AUTO_LITE:
+        case RGB_AUTO_LITE:
             boarders = picture->findBorders(isRGB, false);
             break;
+
         case RGB_AUTO:
         case YCbCr_AUTO:
             boarders = picture->findBorders(isRGB, true);
@@ -149,6 +154,10 @@ void brightnessUtil::act() {
     }
 
     picture->changeBrightness((double) offset, factor, isRGB);
+
+    if (!isRGB) {
+        picture->YCbCr_601toRGB();
+    }
 }
 
 void brightnessUtil::writeResult() {

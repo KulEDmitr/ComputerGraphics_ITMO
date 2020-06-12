@@ -12,6 +12,19 @@ picture::~picture() {
     delete[](this->data);
 }
 
+void picture::RGBtoYCbCr_601() {
+    double kR = 0.299, kG = 0.587, kB = 0.114;
+    for (size_t i = 0; i < height * wide; ++i) {
+        data[i]->RGBtoYCbCr_601(kR, kG, kB);
+    }
+}
+void picture::YCbCr_601toRGB() {
+    double kR = 0.299, kG = 0.587, kB = 0.114;
+    for (size_t i = 0; i < height * wide; ++i) {
+        data[i]->YCbCr_601toRGB(kR, kG, kB);
+    }
+}
+
 void picture::changeBrightness(double offset, double factor, bool isRGB) {
     for (size_t i = 0; i < height * wide; ++i) {
         data[i]->changeBrightness(offset, factor, isRGB);
@@ -82,3 +95,5 @@ void picture::write(FILE *name) {
 
     delete[](result_data);
 }
+
+

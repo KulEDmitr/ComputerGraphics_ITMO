@@ -3,18 +3,24 @@
 
 #include "grayScalePicture.h"
 
-size_t grayScalePicture::gsPixel::write(u_char *f, size_t pos) {
-    f[pos++] = value;
-    return pos;
-}
-
-void grayScalePicture::gsPixel::changeBrightness(double offset, double factor, bool isRGB) {
-    double tmp = ((double) value - offset) * factor;
-    value = (u_char) fmin(fmax(0.0, tmp), 255.0);
+u_char grayScalePicture::gsPixel::correctNoise(double val) {
+    return (u_char) fmin(fmax(0.0, val), 255.0);
 }
 
 void grayScalePicture::gsPixel::add(int *brights, bool isRGB) {
     ++(brights[value]);
+}
+
+void grayScalePicture::gsPixel::changeBrightness(double offset, double factor, bool isRGB) {
+    value = correctNoise(((double) value - offset) * factor);
+}
+
+void grayScalePicture::gsPixel::RGBtoYCbCr_601(double, double, double) {}
+void grayScalePicture::gsPixel::YCbCr_601toRGB(double, double, double) {}
+
+size_t grayScalePicture::gsPixel::write(u_char *f, size_t pos) {
+    f[pos++] = value;
+    return pos;
 }
 
 grayScalePicture::grayScalePicture(size_t wide, size_t height, size_t grade, u_char const *new_data) :
